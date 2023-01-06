@@ -17,10 +17,27 @@ class Project(models.Model):
 
     class Meta:
         db_table = 'project'
-        ordering = ['-created']
+        ordering = ['-vote_ratio', '-vote_total', 'title']
 
     def __str__(self) -> str:
         return self.title
+
+    @property
+    def getvotecount(self):
+        reviews = self.review_set.all()
+        upvotes = reviews.filter(value='up').count()
+        total_votes = reviews.count()
+
+        ratio = (upvotes / total_votes) * 100
+        self.vote_total = total_votes
+        self.vote_ratio = ratio
+        self.save()
+
+    @property
+    def reviewers(self):
+        queryset = self.review_set.all().values_list('owner__id', flat=True)
+        return queryset
+
 
 class Review(models.Model):
 
@@ -29,7 +46,7 @@ class Review(models.Model):
         ('down', ' Down Vote'),
     )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False)
-    owner = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.SET_NULL) 
+    owner = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.CASCADE) 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     body = models.TextField(null=True, blank=True)
     value = models.CharField(max_length=200, choices=VOTE_TYPE)
@@ -38,6 +55,7 @@ class Review(models.Model):
 
     class Meta:
         db_table = 'review'
+        unique_together = [['owner', 'project']]
 
     def __str__(self) -> str:
         return self.value

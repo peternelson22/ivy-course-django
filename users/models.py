@@ -21,6 +21,7 @@ class Profile(models.Model):
 
     class Meta:
         db_table = 'users'
+        ordering = ['-created']
 
     def __str__(self):
         return str(self.user.username)

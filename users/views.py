@@ -35,7 +35,7 @@ def login_(request):
         return redirect('profile')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
+        username = request.POST.get('username').lower()
         password = request.POST.get('password')
 
         try:
@@ -46,7 +46,7 @@ def login_(request):
 
         if user is not None:
             login(request, user)
-            return redirect('profile')
+            return redirect(request.GET['next'] if 'next' in request.GET else 'account')
         else:
             messages.error(request, 'Bad Credentials')
 
