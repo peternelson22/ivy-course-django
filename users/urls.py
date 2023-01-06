@@ -12,7 +12,7 @@ urlpatterns = [
     path('update-skill/<str:pk>/', views.update_skill, name='update-skill'),
     path('delete-skill/<str:pk>/', views.delete_skill, name='delete-skill'),
 
-    path('', views.profiles, name='profile'),
+    path('', views.profile, name='profile'),
     path('profile/<str:pk>/', views.userprofile, name='user-profile'),
 
 
