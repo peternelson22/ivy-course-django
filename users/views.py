@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Profile
 from .utils import search_profile, paginate_profile
-from .forms import CustomUserCreationForm, ProfileForm, SkillForm
+from .forms import CustomUserCreationForm, ProfileForm, SkillForm, MessageForm
 
 def register_(request):
     form = CustomUserCreationForm()
@@ -57,7 +57,6 @@ def logout_(request):
     messages.info(request, 'User successfully logout')
     return redirect('login')
 
-@login_required(login_url='login')
 def profile(request):
 
     profile, search_query = search_profile(request) 
@@ -67,7 +66,6 @@ def profile(request):
     return render(request, 'users/profile.html', context)
 
 
-@login_required(login_url='login')
 def userprofile(request, pk):
     profile = Profile.objects.get(pk=pk)
     top_skills = profile.skill_set.exclude(description__exact='')
@@ -135,6 +133,7 @@ def update_skill(request, pk):
     context = {'form': form}
     return render(request, 'users/skill-form.html', context)
 
+@login_required(login_url='login')
 def delete_skill(request, pk):
     profile = request.user.profile
     skill = profile.skill_set.get(id=pk)
@@ -145,3 +144,49 @@ def delete_skill(request, pk):
         return redirect('account')
 
     return render(request, 'delete.html', {'obj': skill})
+
+
+@login_required(login_url='login')
+def inbox(request):
+    profile = request.user.profile
+    message_request = profile.messages.all()
+    unread_count = message_request.filter(is_read=False).count
+    context = {'message_request': message_request, 'unread_count': unread_count}
+    return render(request, 'users/inbox.html', context)
+
+@login_required(login_url='login')
+def message(request, pk):
+    profile = request.user.profile
+    message_sent = profile.messages.get(id=pk)
+    if message_sent.is_read == False:
+        message_sent.is_read = True
+        message_sent.save()
+    context = {'message_sent': message_sent}
+    return render(request, 'users/message.html', context)
+
+def create_message(request, pk):
+    recipient = Profile.objects.get(id=pk)
+    form = MessageForm()
+
+    try:
+        sender = request.user.profile
+    except:
+        sender = None
+    
+    if request.method == 'POST':
+        form = MessageForm(request.POST)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = sender
+            message.recipient = recipient
+
+            if sender:
+                message.sender_name = sender.sender_name
+                message.email = sender.email
+            message.save()
+
+            messages.success(request, 'Your message was successfully sent')
+            return redirect('user-profile', pk=recipient.id)
+
+    context = {'recipient': recipient, 'form': form}
+    return render(request, 'users/message-form.html', context)
